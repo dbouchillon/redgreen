@@ -35,10 +35,15 @@ IP.1 = 127.0.0.1
 IP.2 = ${HOST_IP}
 EOF
 
-RUN openssl req -x509 -nodes -newkey rsa:2048 -days ${DAYS} \
-    -keyout /app/certs/key.pem -out /app/certs/cert.pem \
-    -config /app/certs/openssl.cnf -extensions v3_req -subj "/CN=localhost"
+# Do not generate cert at build time so users may mount their own signed certs at runtime.
+# The entrypoint will generate a self-signed cert if none are provided.
+
+RUN mkdir -p /app/certs
+
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8443
 
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["python3", "server.py"]

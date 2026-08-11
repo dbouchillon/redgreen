@@ -39,19 +39,27 @@ if __name__ == '__main__':
     import ssl
     import os
     from pathlib import Path
-    port = 8443
 
-    cert_dir = Path("certs")
-    cert_file = cert_dir / "cert.pem"
-    key_file = cert_dir / "key.pem"
+    port = int(os.environ.get('PORT', '8443'))
 
-    if not cert_dir.exists() or not cert_file.exists() or not key_file.exists():
-        print(f"Certificate files not found in {cert_dir}.\nRun the provided generation script or create certs/key.pem and certs/cert.pem")
+    cert_dir = Path(os.environ.get('CERT_DIR', 'certs'))
+    cert_file = Path(os.environ.get('CERT_FILE', str(cert_dir / 'cert.pem')))
+    key_file = Path(os.environ.get('KEY_FILE', str(cert_dir / 'key.pem')))
+
+    if not cert_file.exists() or not key_file.exists():
+        print(f"ERROR: TLS certificate or key not found.\nExpected: {cert_file} and {key_file}.")
+        print("You can generate signed certs with scripts/create_ca.sh and scripts/create_server_cert.sh, or mount certs into the container at /app/certs.")
+        raise SystemExit(1)
 
     server = HTTPServer(('0.0.0.0', port), Handler)
 
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(certfile=str(cert_file), keyfile=str(key_file))
+    try:
+        context.load_cert_chain(certfile=str(cert_file), keyfile=str(key_file))
+    except Exception as e:
+        print(f"Failed to load certificate/key: {e}")
+        raise
+
     server.socket = context.wrap_socket(server.socket, server_side=True)
 
     print(f'Serving on https://0.0.0.0:{port}')
