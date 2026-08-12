@@ -5,7 +5,7 @@ ARG DAYS=7
 WORKDIR /app
 
 # Copy app files
-COPY server.py config.json /app/
+COPY server.py config.json requirements.txt /app/
 
 # Install openssl and generate a self-signed cert including optional HOST_IP as an IP SAN
 RUN apt-get update \
@@ -39,6 +39,9 @@ EOF
 # The entrypoint will generate a self-signed cert if none are provided.
 
 RUN mkdir -p /app/certs
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
